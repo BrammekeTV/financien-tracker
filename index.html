@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Financiën Tracker – beheer je inkomsten en uitgaven" />
+  <title>Financiën Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header" role="banner">
+    <div class="header-inner">
+      <h1 class="app-title">
+        <span class="logo-icon" aria-hidden="true">💰</span>
+        Financiën Tracker
+      </h1>
+      <nav class="header-nav" aria-label="Hoofdnavigatie">
+        <button class="nav-btn active" data-tab="dashboard" aria-current="page">Dashboard</button>
+        <button class="nav-btn" data-tab="transacties">Transacties</button>
+        <button class="nav-btn" data-tab="categorieen">Categorieën</button>
+        <button class="nav-btn" data-tab="spaardoelen">Spaardoelen</button>
+      </nav>
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btnExportCSV" aria-label="Transacties exporteren als CSV">
+          ⬇ Exporteer CSV
+        </button>
+        <label class="btn btn-secondary btn-sm" for="importCSVInput" aria-label="Transacties importeren uit CSV">
+          ⬆ Importeer CSV
+          <input type="file" id="importCSVInput" accept=".csv" class="visually-hidden" aria-hidden="true" />
+        </label>
+        <button class="btn btn-danger btn-sm" id="btnReset" aria-label="Alle data wissen en resetten">
+          ↺ Reset
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main" role="main">
+
+    <!-- ===== DASHBOARD TAB ===== -->
+    <section id="tab-dashboard" class="tab-panel active" aria-labelledby="nav-dashboard">
+      <h2 class="visually-hidden">Dashboard</h2>
+
+      <!-- Samenvatting kaarten -->
+      <div class="summary-cards" role="list" aria-label="Financieel overzicht">
+        <article class="card summary-card income-card" role="listitem">
+          <div class="card-icon" aria-hidden="true">📈</div>
+          <div class="card-content">
+            <span class="card-label">Totale inkomsten</span>
+            <span class="card-value" id="totalIncome">€ 0,00</span>
+          </div>
+        </article>
+        <article class="card summary-card expense-card" role="listitem">
+          <div class="card-icon" aria-hidden="true">📉</div>
+          <div class="card-content">
+            <span class="card-label">Totale uitgaven</span>
+            <span class="card-value" id="totalExpenses">€ 0,00</span>
+          </div>
+        </article>
+        <article class="card summary-card balance-card" role="listitem">
+          <div class="card-icon" aria-hidden="true">⚖️</div>
+          <div class="card-content">
+            <span class="card-label">Netto saldo</span>
+            <span class="card-value" id="netBalance">€ 0,00</span>
+          </div>
+        </article>
+        <article class="card summary-card savings-card" role="listitem">
+          <div class="card-icon" aria-hidden="true">🐷</div>
+          <div class="card-content">
+            <span class="card-label">Spaarpercentage</span>
+            <span class="card-value" id="savingsRate">0%</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- Filter balk -->
+      <div class="filter-bar" role="search" aria-label="Filter transacties op periode">
+        <label for="filterMonth" class="filter-label">Maand:</label>
+        <select id="filterMonth" class="select" aria-label="Selecteer maand">
+          <option value="">Alle maanden</option>
+        </select>
+        <label for="filterYear" class="filter-label">Jaar:</label>
+        <select id="filterYear" class="select" aria-label="Selecteer jaar">
+          <option value="">Alle jaren</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="btnClearFilter" aria-label="Filter wissen">
+          Wis filter
+        </button>
+      </div>
+
+      <!-- Grafieken -->
+      <div class="charts-grid">
+        <div class="card chart-card">
+          <h3 class="chart-title">Maandelijks overzicht</h3>
+          <div class="chart-container" role="img" aria-label="Staafgrafiek maandelijks overzicht">
+            <canvas id="barChart" aria-label="Maandelijkse inkomsten en uitgaven staafgrafiek"></canvas>
+            <p class="chart-empty hidden" id="barChartEmpty">Geen gegevens beschikbaar voor de grafiek.</p>
+          </div>
+          <div class="chart-legend" id="barChartLegend" aria-label="Legenda staafgrafiek">
+            <span class="legend-item"><span class="legend-dot income-dot" aria-hidden="true"></span>Inkomsten</span>
+            <span class="legend-item"><span class="legend-dot expense-dot" aria-hidden="true"></span>Uitgaven</span>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <h3 class="chart-title">Uitgaven per categorie</h3>
+          <div class="chart-container donut-container" role="img" aria-label="Donut grafiek uitgaven per categorie">
+            <canvas id="donutChart" aria-label="Donut grafiek verdeling uitgaven per categorie"></canvas>
+            <p class="chart-empty hidden" id="donutChartEmpty">Geen uitgaven om te tonen.</p>
+          </div>
+          <div class="chart-legend" id="donutChartLegend" aria-label="Legenda donut grafiek"></div>
+        </div>
+      </div>
+
+      <!-- Budget waarschuwingen -->
+      <div id="budgetWarnings" class="budget-warnings" aria-live="polite" aria-label="Budgetwaarschuwingen"></div>
+
+      <!-- Recente transacties -->
+      <div class="card">
+        <div class="section-header">
+          <h3 class="section-title">Recente transacties</h3>
+          <button class="btn btn-primary btn-sm" id="btnAddTransactionDash" aria-label="Nieuwe transactie toevoegen">
+            + Transactie toevoegen
+          </button>
+        </div>
+        <div id="recentTransactions" class="transactions-list" role="list" aria-label="Recente transacties lijst"></div>
+      </div>
+    </section>
+
+    <!-- ===== TRANSACTIES TAB ===== -->
+    <section id="tab-transacties" class="tab-panel" aria-labelledby="nav-transacties" hidden>
+      <h2 class="visually-hidden">Transacties</h2>
+
+      <div class="section-header">
+        <h3 class="section-title">Alle transacties</h3>
+        <button class="btn btn-primary" id="btnAddTransaction" aria-label="Nieuwe transactie toevoegen">
+          + Transactie toevoegen
+        </button>
+      </div>
+
+      <!-- Filter balk transacties -->
+      <div class="filter-bar" role="search" aria-label="Filter transacties">
+        <label for="filterMonthTx" class="filter-label">Maand:</label>
+        <select id="filterMonthTx" class="select" aria-label="Selecteer maand voor transacties">
+          <option value="">Alle maanden</option>
+        </select>
+        <label for="filterYearTx" class="filter-label">Jaar:</label>
+        <select id="filterYearTx" class="select" aria-label="Selecteer jaar voor transacties">
+          <option value="">Alle jaren</option>
+        </select>
+        <label for="filterType" class="filter-label">Type:</label>
+        <select id="filterType" class="select" aria-label="Selecteer transactietype">
+          <option value="">Alle typen</option>
+          <option value="inkomst">Inkomsten</option>
+          <option value="uitgave">Uitgaven</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="btnClearFilterTx" aria-label="Filter wissen">Wis filter</button>
+      </div>
+
+      <div id="allTransactions" class="transactions-list" role="list" aria-label="Alle transacties lijst"></div>
+    </section>
+
+    <!-- ===== CATEGORIEËN TAB ===== -->
+    <section id="tab-categorieen" class="tab-panel" aria-labelledby="nav-categorieen" hidden>
+      <h2 class="visually-hidden">Categorieën</h2>
+
+      <div class="section-header">
+        <h3 class="section-title">Categorieën beheren</h3>
+        <button class="btn btn-primary" id="btnAddCategory" aria-label="Nieuwe categorie toevoegen">
+          + Categorie toevoegen
+        </button>
+      </div>
+
+      <div id="categoriesList" class="categories-grid" role="list" aria-label="Categorieën lijst"></div>
+    </section>
+
+    <!-- ===== SPAARDOELEN TAB ===== -->
+    <section id="tab-spaardoelen" class="tab-panel" aria-labelledby="nav-spaardoelen" hidden>
+      <h2 class="visually-hidden">Spaardoelen</h2>
+
+      <div class="savings-layout">
+        <!-- Spaardoel instellen -->
+        <div class="card savings-goal-card">
+          <h3 class="section-title">Spaardoel instellen</h3>
+          <form id="savingsGoalForm" aria-label="Spaardoel formulier">
+            <div class="form-group">
+              <label for="savingsGoalName" class="form-label">Naam spaardoel</label>
+              <input type="text" id="savingsGoalName" class="input" placeholder="bijv. Vakantie, Auto, Noodfonds" aria-label="Naam van het spaardoel" />
+            </div>
+            <div class="form-group">
+              <label for="savingsGoalAmount" class="form-label">Doelbedrag (€)</label>
+              <input type="number" id="savingsGoalAmount" class="input" placeholder="0,00" min="0" step="0.01" aria-label="Doelbedrag voor het spaardoel" />
+            </div>
+            <button type="submit" class="btn btn-primary" aria-label="Spaardoel opslaan">
+              Spaardoel opslaan
+            </button>
+          </form>
+        </div>
+
+        <!-- Spaarsamenvatting -->
+        <div class="card savings-summary-card">
+          <h3 class="section-title">Spaarsamenvatting</h3>
+          <div class="savings-stats">
+            <div class="savings-stat">
+              <span class="savings-stat-label">Gespaard (huidig saldo)</span>
+              <span class="savings-stat-value" id="currentSavings">€ 0,00</span>
+            </div>
+            <div class="savings-stat" id="goalStatWrapper">
+              <span class="savings-stat-label">Spaardoel</span>
+              <span class="savings-stat-value" id="goalAmount">Niet ingesteld</span>
+            </div>
+            <div class="savings-stat" id="remainingStatWrapper">
+              <span class="savings-stat-label">Nog te sparen</span>
+              <span class="savings-stat-value" id="remainingAmount">-</span>
+            </div>
+          </div>
+          <div id="savingsGoalProgress" class="progress-wrapper" aria-label="Voortgang spaardoel" hidden>
+            <div class="progress-label">
+              <span id="savingsGoalLabel">Voortgang</span>
+              <span id="savingsGoalPct">0%</span>
+            </div>
+            <div class="progress-bar-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="savingsProgressBar">
+              <div class="progress-bar-fill savings-fill" id="savingsProgressFill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maandelijkse spaarsamenvatting -->
+      <div class="card">
+        <h3 class="section-title">Maandelijks sparoverzicht</h3>
+        <div id="monthlySavingsList" class="monthly-savings-list" role="list" aria-label="Maandelijks sparoverzicht lijst"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== TRANSACTIE MODAAL ===== -->
+  <div id="transactionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="transactionModalTitle" hidden>
+    <div class="modal-overlay" id="transactionModalOverlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="transactionModalTitle">Transactie toevoegen</h2>
+        <button class="modal-close" id="closeTransactionModal" aria-label="Modaal sluiten">✕</button>
+      </div>
+      <form id="transactionForm" novalidate aria-label="Transactie formulier">
+        <input type="hidden" id="transactionId" />
+        <div class="form-row">
+          <div class="form-group">
+            <label for="txType" class="form-label">Type <span aria-hidden="true">*</span></label>
+            <select id="txType" class="select" required aria-required="true" aria-label="Selecteer transactietype">
+              <option value="inkomst">Inkomst</option>
+              <option value="uitgave">Uitgave</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="txDate" class="form-label">Datum <span aria-hidden="true">*</span></label>
+            <input type="date" id="txDate" class="input" required aria-required="true" aria-label="Datum van de transactie" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="txDescription" class="form-label">Omschrijving <span aria-hidden="true">*</span></label>
+          <input type="text" id="txDescription" class="input" required aria-required="true" placeholder="bijv. Huur, Boodschappen, Salaris" aria-label="Omschrijving van de transactie" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="txAmount" class="form-label">Bedrag (€) <span aria-hidden="true">*</span></label>
+            <input type="number" id="txAmount" class="input" required aria-required="true" min="0.01" step="0.01" placeholder="0,00" aria-label="Bedrag van de transactie in euro" />
+          </div>
+          <div class="form-group">
+            <label for="txCategory" class="form-label">Categorie <span aria-hidden="true">*</span></label>
+            <select id="txCategory" class="select" required aria-required="true" aria-label="Selecteer categorie voor de transactie"></select>
+          </div>
+        </div>
+        <div class="form-error" id="txFormError" role="alert" aria-live="assertive" hidden></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelTransaction" aria-label="Annuleren">Annuleren</button>
+          <button type="submit" class="btn btn-primary" id="saveTransaction" aria-label="Transactie opslaan">Opslaan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== CATEGORIE MODAAL ===== -->
+  <div id="categoryModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle" hidden>
+    <div class="modal-overlay" id="categoryModalOverlay"></div>
+    <div class="modal-content modal-content-sm">
+      <div class="modal-header">
+        <h2 class="modal-title" id="categoryModalTitle">Categorie toevoegen</h2>
+        <button class="modal-close" id="closeCategoryModal" aria-label="Modaal sluiten">✕</button>
+      </div>
+      <form id="categoryForm" novalidate aria-label="Categorie formulier">
+        <input type="hidden" id="categoryId" />
+        <div class="form-group">
+          <label for="catName" class="form-label">Naam <span aria-hidden="true">*</span></label>
+          <input type="text" id="catName" class="input" required aria-required="true" placeholder="bijv. Vakantie" aria-label="Naam van de categorie" />
+        </div>
+        <div class="form-group">
+          <label for="catColor" class="form-label">Kleur</label>
+          <input type="color" id="catColor" class="input color-input" value="#6366f1" aria-label="Kleur van de categorie" />
+        </div>
+        <div class="form-group">
+          <label for="catBudget" class="form-label">Maandbudget (€, optioneel)</label>
+          <input type="number" id="catBudget" class="input" min="0" step="0.01" placeholder="0,00" aria-label="Optioneel maandbudget voor uitgaven in euro" />
+        </div>
+        <div class="form-error" id="catFormError" role="alert" aria-live="assertive" hidden></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancelCategory" aria-label="Annuleren">Annuleren</button>
+          <button type="submit" class="btn btn-primary" id="saveCategory" aria-label="Categorie opslaan">Opslaan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== BEVESTIGING MODAAL ===== -->
+  <div id="confirmModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" hidden>
+    <div class="modal-overlay" id="confirmModalOverlay"></div>
+    <div class="modal-content modal-content-sm">
+      <div class="modal-header">
+        <h2 class="modal-title" id="confirmModalTitle">Bevestigen</h2>
+      </div>
+      <p class="confirm-message" id="confirmMessage"></p>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="confirmCancel" aria-label="Annuleren">Annuleren</button>
+        <button type="button" class="btn btn-danger" id="confirmOk" aria-label="Bevestigen">Bevestigen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST MELDING ===== -->
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
