@@ -382,14 +382,14 @@ function renderBarChart() {
     const hI = (data.inkomsten / maxWaarde) * grafH;
     ctx.fillStyle = '#22c55e';
     ctx.beginPath();
-    aroundedRect(ctx, x - staafB - 2, padT + grafH - hI, staafB, hI, 3);
+    roundedRect(ctx, x - staafB - 2, padT + grafH - hI, staafB, hI, 3);
     ctx.fill();
 
     // Uitgaven staaf
     const hU = (data.uitgaven / maxWaarde) * grafH;
     ctx.fillStyle = '#f43f5e';
     ctx.beginPath();
-    aroundedRect(ctx, x + 2, padT + grafH - hU, staafB, hU, 3);
+    roundedRect(ctx, x + 2, padT + grafH - hU, staafB, hU, 3);
     ctx.fill();
 
     // Maand label
@@ -401,7 +401,7 @@ function renderBarChart() {
   });
 }
 
-function aroundedRect(ctx, x, y, w, h, r) {
+function roundedRect(ctx, x, y, w, h, r) {
   if (h < 1) h = 1;
   r = Math.min(r, h / 2, w / 2);
   ctx.moveTo(x + r, y);
